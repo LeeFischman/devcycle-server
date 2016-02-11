@@ -1,5 +1,6 @@
 import logging
 import traceback
+import json
 from location_update.models import Location
 from location_update.serializers import locationSerializer
 from rest_framework.views import APIView
@@ -7,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from rider.models import Rider
+from rider.models import Rider, Group, Affinity_Group_Mapping
 from rider.rider_id_tools import decrypt_uuid
 from rider.utils import get_registration_data, get_num_registered
 from django.conf import settings
@@ -20,10 +21,50 @@ from tour_config.models import TourConfig
 import time
 import math
 from django.core import serializers
+from django.http import HttpResponse
+#from django.core.exceptions import DoesNotExist
 
 
 logger = logging.getLogger(__name__)
 
+def get_location_data_view(request, aff_id):
+ # longitude: {{point.x}}
+ # latitude: {{point.y}}
+
+	#check that the group exists
+	try:
+		group = Group.objects.get(code=aff_id)
+	except Exception as e:
+		json_response = [{"success":"false", "message":"ERROR: Group does not exist"}]
+		if 'callback' in request.REQUEST:
+			return_string = "%s(%s)" % (request.REQUEST['callback'], json.dumps(json_response))
+			response = HttpResponse(return_string)
+			response.content_type = "application/json"
+			return response
+		return HttpResponse(json.dumps(json_response), content_type="application/json")
+
+	#get all the rider locations associated with the group
+	rider_mapping_set = Affinity_Group_Mapping.objects.filter(affinity_group_id=group.id)
+	json_data = []
+	json_data.append({"success":"true","message":"success"})
+	for row in rider_mapping_set:
+		rider_id = row.rider_id
+		try:
+			point = Location.objects.filter(rider__id=rider_id).order_by('-id')[0]
+			long_coord = point.coords.x
+			lat_coord = point.coords.y
+			json_data.append({'riderId': rider_id, 'latitude':lat_coord,'longitude':long_coord})
+		except Exception as e:
+			x = 1
+			# handle error if a rider has no location data
+
+	#return the location data to the client
+	if 'callback' in request.REQUEST:
+		return_string = '%s(%s)' % (request.REQUEST['callback'], json.dumps(json_data))
+		return HttpResponse(return_string, content_type="application/json")
+	return HttpResponse(json.dumps(json_data), content_type="application/json")
+				
+	
 
 class LocationAPI(APIView):
 
@@ -43,8 +84,8 @@ class LocationAPI(APIView):
             tour_id = data.get('tour_id')
 
             # Get and decrypt the UUID
-            rider = decrypt_uuid(data[settings.JSON_KEYS['RIDER_ID']])
-
+            #//rider = decrypt_uuid(data[settings.JSON_KEYS['RIDER_ID']])
+	    rider = data[settings.JSON_KEYS['RIDER_ID']]
 	    logger.error("RIDER TO PRINT HERE: ", rider)
 
             # Check if the parameters passed in 
