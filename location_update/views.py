@@ -36,8 +36,9 @@ def get_location_data_view(request, aff_id):
 		group = Group.objects.get(code=aff_id)
 	except Exception as e:
 		json_response = [{"success":"false", "message":"ERROR: Group does not exist"}]
-		if 'callback' in request.REQUEST:
-			return_string = "%s(%s)" % (request.REQUEST['callback'], json.dumps(json_response))
+		cb = get_callback_from_request(request)
+		if cb is not None:
+			return_string = "%s(%s)" % (cb, json.dumps(json_response))
 			response = HttpResponse(return_string)
 			response.content_type = "application/json"
 			return response
@@ -59,8 +60,9 @@ def get_location_data_view(request, aff_id):
 			# handle error if a rider has no location data
 
 	#return the location data to the client
-	if 'callback' in request.REQUEST:
-		return_string = '%s(%s)' % (request.REQUEST['callback'], json.dumps(json_data))
+	cb = get_callback_from_request(request)
+	if cb is not None:
+		return_string = '%s(%s)' % (cb, json.dumps(json_data))
 		return HttpResponse(return_string, content_type="application/json")
 	return HttpResponse(json.dumps(json_data), content_type="application/json")
 				
@@ -286,3 +288,11 @@ class PlaybackAPI(APIView):
             frames.append(frame);
         return Response(
                     {'frames': frames, 'total': total}, status=status.HTTP_200_OK)
+
+def get_callback_from_request(request):
+	print(request.method)
+	if 'GET' == request.method:
+		return request.GET[u'callback']
+	elif 'POST' == request.method:
+		return request.POST[u'callback']
+	return None
