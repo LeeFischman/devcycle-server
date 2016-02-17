@@ -93,7 +93,7 @@ sudo vim /usr/local/devcycle/dataCollection/settings.py
  ```
  * Under DATABASES, modify USER and PASSWORD fields to reflect the database user you created in ["Install The Database"](#install-postgres-with-postgis-install-the-database).
  * Change "TIME_ZONE" to match the timezone of the server in “tz database” format (e.g. ‘America/New_York’)
- * Change "DEBUG" to `True` if you are *not* in production
+ * Change "DEBUG" to `True` if you are **not** in production
  * Change "DEFAULT_MAP_LAT" and "DEFAULT_MAP_LON" to match the latitude and longitude, respectively, that maps in the dashboard should default to.
  * Change "MAP_TILE_SERVER" to match the hostname of the server to retrieve map tiles from (currently configured to use MapQuest's free OSM tile server)
 
