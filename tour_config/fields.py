@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class UnixDateTimeField(forms.DateTimeField):
     def to_python(self, value):
+        # Validate Date-time input against the accepted formats
         dt = None
         try:
             dt = datetime.strptime(' '.join(value), '%Y-%m-%d %H:%M')

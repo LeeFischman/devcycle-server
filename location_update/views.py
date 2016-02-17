@@ -290,7 +290,6 @@ class PlaybackAPI(APIView):
                     {'frames': frames, 'total': total}, status=status.HTTP_200_OK)
 
 def get_callback_from_request(request):
-	print(request.method)
 	if 'GET' == request.method:
 		return request.GET[u'callback']
 	elif 'POST' == request.method:
