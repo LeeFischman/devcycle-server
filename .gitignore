@@ -12,3 +12,6 @@
 
 # CTAGS FILE #
 /dataCollection/tags
+
+# Log files
+*.log
