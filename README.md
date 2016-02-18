@@ -112,9 +112,12 @@ At this point the database schema for the Server does not exist yet. We will use
 
 *Note all commands below need to be ran within the root directory of the Django Project (/usr/local/devcycle)*
 
-This command will create the migrations:
+These commands will create and then apply the migrations:
 
-`sudo python manage.py migrate --fake-initial`
+```
+  sudo python manage.py makemigrations
+  sudo python manage.py migrate --fake-initial
+```
 
  - _**Note:** this may prompt you to create a django auth user. Follow that process as well if it does._
 

@@ -42,3 +42,7 @@ sudo pip install -r /usr/local/devcycle/requirements.txt
 # Create and setup the django logging directory
 sudo mkdir /var/log/devcycle-logs
 sudo chown -R www-data:www-data /var/log/devcycle-logs
+
+# Cleanup djcelery's migrations
+sudo rm -rf /usr/local/lib/python2.7/dist-packages/djcelery/migrations/*
+sudo touch /usr/local/lib/python2.7/dist-packages/djcelery/migrations/__init__.py
