@@ -97,7 +97,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = '@qpn)xr0i2sy8v1i4va@c_30#q$xjj_2^crh)wf$+w4=y@#ep_'
+SECRET_KEY = 'I_AM_A_SECRET_KEY'
 
 #CSRF_COOKIE_DOMAIN = 'localhost' #your domain name
 
@@ -207,8 +207,8 @@ LOGGING = {
     }
 }
 
-KEY = '52af783df367b7a5c7d01457d82544bf'
-SALT = '58268845878249858254353589767595'
+KEY = 'I_AM_TOTALLY_A_KEY'
+SALT = 'I_AM_A_SALT'
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
