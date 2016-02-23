@@ -83,16 +83,8 @@ _(This is where you begin the server setup instructions)_
 
  ```
 sudo cp /usr/local/devcycle/001-devcycle.conf.template /etc/apache2/sites-available/001-devcycle.conf
-sudo vim /etc/apache2/sites-available/001-devcycle.conf
  ```
- * Change "SERVER_NAME" to match your server's name ex: `devcycle`
- * Change "SERVER_ADDRESS" to match your domain ex: `devcycle.se.rit.edu`
- * Change "SERVER_EMAIL_ADDRESS" to match your email address ex: `pandaman@example.com`
- * Change "DEBUG" to `True` if you are *not* in production
- * Change "TIME_ZONE" to match the timezone of the server in “tz database” format (e.g. ‘America/New_York’)
- * Change "DEFAULT_MAP_LAT" and "DEFAULT_MAP_LON" to match the latitude and longitude, respectively, that maps in the dashboard should default to.
- * Change "MAP_TILE_SERVER" to match the hostname of the server to retrieve map tiles from (currently configured to use MapQuest's free OSM tile server)
-
+ 
 7. Create and Change the application settings:
 
  ```
@@ -100,6 +92,11 @@ sudo cp /usr/local/devcycle/dataCollection/settings.py.template /usr/local/devcy
 sudo vim /usr/local/devcycle/dataCollection/settings.py
  ```
  * Under DATABASES, modify USER and PASSWORD fields to reflect the database user you created in ["Install The Database"](#install-postgres-with-postgis-install-the-database).
+ * Find the Lines with SECRET_KEY, KEY, and SALT. Generate values for these options.
+ * Change "TIME_ZONE" to match the timezone of the server in “tz database” format (e.g. ‘America/New_York’)
+ * Change "DEBUG" to `True` if you are **not** in production
+ * Change "DEFAULT_MAP_LAT" and "DEFAULT_MAP_LON" to match the latitude and longitude, respectively, that maps in the dashboard should default to.
+ * Change "MAP_TILE_SERVER" to match the hostname of the server to retrieve map tiles from (currently configured to use MapQuest's free OSM tile server)
 
 8. Restart the apache server to put all changes into effect.
 
@@ -109,17 +106,19 @@ sudo /etc/init.d/apache2 reload
 
 
 ###Setup The Database
-[South](http://south.aeracode.org/) is a schema and data migration tool for Django. It is used for easily
-migrating the database schema from database to database if needed. It is also used in the case of making updates
-to models then wanting those changes reflected in the database schema. South is already installed if you ran the `bash setup.sh` command. Recommend looking at the docs for more information [docs](http://south.readthedocs.org/en/latest/index.html)
+Migrate From South: If you are using an older version of the devcycle database, you will need to migrate away from south as it no longer exists in Django 1.9+. You can find instructions to do so [here.](https://docs.djangoproject.com/en/1.9/topics/migrations/#upgrading-from-south)
 
-At this point the database schema for the Server does not exist yet. We will use South to add it. South will look at the current models to set-up the schema that the Server requires.
+New Installation:
+At this point the database schema for the Server does not exist yet. We will use Django to add it. Django will look at the current models to set-up the schema that the Server requires.
 
 *Note all commands below need to be ran within the root directory of the Django Project (/usr/local/devcycle)*
 
-This command will create the migrations:
+These commands will create and then apply the migrations:
 
-`sudo python manage.py syncdb --all`
+```
+  sudo python manage.py makemigrations
+  sudo python manage.py migrate --fake-initial
+```
 
  - _**Note:** this may prompt you to create a django auth user. Follow that process as well if it does._
 
@@ -306,13 +305,9 @@ changes in the database. You can do so by running this command:
 * change "MODEL_NAME" to the model you changed ex: "rider"
 * change "NAME_OF_MIGRATION" to what you want to call it.
 
-These commands will then apply the newly created migrations to the database:
+This commands will then apply the newly created migrations to the database:
 
-`sudo python manage.py migrate rider 0001`
-
-`sudo python manage.py migrate location_update 0001`
-
-`sudo python manage.py migrate tour_config 0001`
+`sudo python manage.py makemigrations`
 
 Now you need to reload the server
 

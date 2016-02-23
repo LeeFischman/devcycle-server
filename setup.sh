@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup.sh for configuring Ubuntu 12.04 LTS EC2 instance with the 
+# setup.sh for configuring Ubuntu 14.04 LTS with the 
 # devcycle django server installed. easy and quick way to install
 # all the required dependencies.
 
@@ -33,7 +33,16 @@ sudo apt-get install apache2-dev --yes
 
 # Install mod_wsgi
 sudo apt-get install libapache2-mod-wsgi --yes
+sudo apt-get install libapache2-mod-python --yes
 sudo service apache2 restart
 
 # Install the required python eggs
 sudo pip install -r /usr/local/devcycle/requirements.txt
+
+# Create and setup the django logging directory
+sudo mkdir /var/log/devcycle-logs
+sudo chown -R www-data:www-data /var/log/devcycle-logs
+
+# Cleanup djcelery's migrations
+sudo rm -rf /usr/local/lib/python2.7/dist-packages/djcelery/migrations/*
+sudo touch /usr/local/lib/python2.7/dist-packages/djcelery/migrations/__init__.py

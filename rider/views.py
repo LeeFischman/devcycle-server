@@ -131,13 +131,20 @@ def check_code_view(request, aff_id):
         return write_response(request, json.dumps([{"success": "false", "message": "Code exists"}]))
     return write_response(request, json.dumps([{"success": "true", "message": "Code does not exist"}]))
 
+def get_callback_from_request(request):
+    if 'GET' == request.method:
+        return request.GET[u'callback']
+    elif 'POST' == request.method:
+        return request.POST[u'callback']
+    return None
 
 def write_response(request, data):
     response = HttpResponse()
     response.content_type="application/json"
 
-    if 'callback' in request.REQUEST:
-        return_string = '%s(%s)' % (request.REQUEST['callback'], data)
+    cb = get_callback_from_request(request)
+    if cb is not None:
+        return_string = '%s(%s)' % (cb, data)
         response.write(return_string)
         return response
     response.write(data)
