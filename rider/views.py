@@ -133,9 +133,9 @@ def check_code_view(request, aff_id):
 
 def get_callback_from_request(request):
     if 'GET' == request.method:
-        return request.GET[u'callback']
+        return request.GET.get('callback', None)
     elif 'POST' == request.method:
-        return request.POST[u'callback']
+        return request.POST.get('callback', None)
     return None
 
 def write_response(request, data):

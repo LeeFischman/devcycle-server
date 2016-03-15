@@ -9,7 +9,7 @@ urlpatterns = patterns('',
 						url(r'^register_push/$',
 							views.RiderPushUpdateAPI.as_view()),
 						# get affinity group data
-						url(r'^list_group/(?P<r_id>\w+)/$', 
+						url(r'^list_group/(?P<r_id>[-\w]+)/$', 
 							views.list_group_view),
 						# create an affinity group
 						url(r'^create_group/$',

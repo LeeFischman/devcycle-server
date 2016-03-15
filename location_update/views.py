@@ -76,7 +76,7 @@ class LocationAPI(APIView):
             ###
             # This won't work without the header
             # 'Content-Type: application/json' :
-            data = request.DATA
+            data = request.data
             ###
 
             # Get the Locations from Data
@@ -291,7 +291,7 @@ class PlaybackAPI(APIView):
 
 def get_callback_from_request(request):
 	if 'GET' == request.method:
-		return request.GET[u'callback']
+		return request.GET.get('callback', None)
 	elif 'POST' == request.method:
-		return request.POST[u'callback']
+		return request.POST.get('callback', None)
 	return None
