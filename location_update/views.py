@@ -76,7 +76,7 @@ class LocationAPI(APIView):
             ###
             # This won't work without the header
             # 'Content-Type: application/json' :
-            data = request.DATA
+            data = request.data
             ###
 
             # Get the Locations from Data
