@@ -1,0 +1,11 @@
+WSGIDaemonProcess devcycle python-path=/usr/local/devcycle
+WSGIScriptAlias / /usr/local/devcycle/dataCollection/wsgi.py
+WSGIProcessGroup devcycle
+Alias /static/ /var/www/static/
+
+<Directory /usr/local/devcycle/dataCollection>
+
+  <Files wsgi.py>
+    Require all granted
+  </Files>
+</Directory>

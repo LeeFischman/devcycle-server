@@ -1,18 +1,20 @@
-TourTrak Data Collection Server
+﻿TourTrak Data Collection Server
 ===============
-The server component to the TourTrak system built using Django.
+The server component to the TourTrak system built using Django on **Ubuntu 14.04**.
 
 ![screenshot](https://raw.githubusercontent.com/tofferrosen/devcycle-server/master/preview.png)
 
 ###Dependencies
+**Note:** These will be installed by a script in the Installation instructions below
+
 * Python 2.7
-* Pip for Python
-* python-django
+* Pip for Python2
+* python-django version 1.6.11
 * apache server
 * mod_wsgi
 * postgresQL
 * PostGIS
-* postgresql-server-dev-9.1
+* postgresql-server-9.3
 * psycopg2
 * binutils
 * gdal-bin
@@ -20,151 +22,125 @@ The server component to the TourTrak system built using Django.
 * memcached
 * rabbitmq-server
 
-## Install PostGIS
 
-1. Install postgreSQL. Refer to official documentation. After, install postGIS, which is a postgreSQL extention for handling spatial data by doing `apt-get install postgresql-9.1-postgis`
-2. Setup the postgreSQL database:
+## Install Postgres with PostGIS (Install The Database)
 
-* switch to the default postgresql user by running `su postgres`
-* create a user w/ read and write permissions: `createuser --pwprompt`
-* Create the DCS database used to collect rider information: `createdb DCS`
+_(This is where you begin the server setup instructions)_
+
+1. Update aptitude
+
+	`sudo apt-get update`
+2. Install postgreSQL
+
+	`sudo apt-get install postgresql`
+3. After, install postGIS, which is a postgreSQL extention for handling spatial data
+
+	`sudo apt-get install postgresql-9.3-postgis-2.1`
+4. Setup the postgreSQL database:
+
+* switch to the default postgresql user by running
+
+	`sudo -iu postgres`
+* create a user w/ read and write permissions:
+
+	`createuser --pwprompt dev`
+	
+	 - _**Note:** Change "dev" to what you want the database username to be_
+	 - _**Note:** The password cannot be blank_
+* Create the DCS database used to collect rider information:
+
+	`createdb DCS`
 * Setup the postGIS functions:
 
 ```
-  psql -d DCS -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-  psql -d DCS -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
-  
+  psql DCS
+  CREATE EXTENSION postgis;
+  CREATE EXTENSION postgis_topology;
+  \q
+```
+* Sign out of postgresuser
+
+    `exit`
+
+##Install The Application
+
+1. Install git
+
+	`sudo apt-get install git`
+2. Create a 'devcycle' directory in /usr/local/
+
+	`sudo mkdir /usr/local/devcycle`
+3. Clone this repository into /usr/local/devcycle
+ 
+	`sudo git clone https://github.com/tourtrak/devcycle-server.git /usr/local/devcycle`
+4. **IMPORTANT:** The directory must be named 'devcycle' and not 'devcycle-server'. Django does not support hyphen names for it's applications.</b>
+5. Inside the root directory of your application, install all project dependencies by running our setup script
+
+	`cd /usr/local/devcycle`
+
+	`sudo bash setup.sh` _(This will take a significant amount of time on mod_wsgi-httpd, 10-20 mins)_
+6. Create a virtual host & WSGI file for the Apache server to display the Django application by creating a new .conf file from the template.
+
+ ```
+sudo cp /usr/local/devcycle/001-devcycle.conf.template /etc/apache2/sites-available/001-devcycle.conf
+sudo ln -s /etc/apache2/sites-available/001-devcycle.conf /etc/apache2/sites-enabled/001-devcycle.conf
+ ```
+ 
+7. Create and Change the application settings:
+
+ ```
+sudo cp /usr/local/devcycle/dataCollection/settings.py.template /usr/local/devcycle/dataCollection/settings.py
+sudo vim /usr/local/devcycle/dataCollection/settings.py
+ ```
+ * Under DATABASES, modify USER and PASSWORD fields to reflect the database user you created in ["Install The Database"](#install-postgres-with-postgis-install-the-database).
+ * Find the Lines with SECRET_KEY, KEY, and SALT. Generate values for these options.
+ * Change "TIME_ZONE" to match the timezone of the server in “tz database” format (e.g. ‘America/New_York’)
+ * Change "DEBUG" to `True` if you are **not** in production
+ * Change "DEFAULT_MAP_LAT" and "DEFAULT_MAP_LON" to match the latitude and longitude, respectively, that maps in the dashboard should default to.
+ * Change "MAP_TILE_SERVER" to match the hostname of the server to retrieve map tiles from (currently configured to use MapQuest's free OSM tile server)
+
+8. Restart the apache server to put all changes into effect.
+
+ ```
+sudo /etc/init.d/apache2 reload
+ ```
+
+
+###Setup The Database
+Migrate From South: If you are using an older version of the devcycle database, you will need to migrate away from south as it no longer exists in Django 1.9+. You can find instructions to do so [here.](https://docs.djangoproject.com/en/1.9/topics/migrations/#upgrading-from-south)
+
+New Installation:
+At this point the database schema for the Server does not exist yet. We will use Django to add it. Django will look at the current models to set-up the schema that the Server requires.
+
+*Note all commands below need to be ran within the root directory of the Django Project (/usr/local/devcycle)*
+
+These commands will create and then apply the migrations:
+
+```
+  sudo python manage.py makemigrations
+  sudo python manage.py migrate --fake-initial
 ```
 
-##Installation
-
-* Clone this repository into /usr/local/
-* Inside the root directory of your application, install all project dependencies by runnning our setup script `bash setup.sh`
-* Create a virtual host & WSGI file for the Apache server to display the Django application. Open the httpd.conf file 'nano /etc/apache2/httpd.conf'. Copy and paste the following, you may edit 
-these values if desired (such as where to collect static files).
-
-```
-WSGIPythonPath usr/local/devcycle
-
-<VirtualHost *:80>
-        ServerName devcycle.se.rit.edu
-        ServerAlias devcycle.se.rit.edu
-        ServerAdmin someaddress@example.com
-
-        Alias /static /var/www/static/
-
-        <Directory /public/static/>
-                Order allow,deny
-                Allow from all
-        </Directory>
-
-        WSGIDaemonProcess devcycle processes=2 threads=15 display-name=%{GROUP} python-path=/usr/local/devcycle/
-        WSGIProcessGroup devcycle
-        WSGIScriptAlias / /usr/local/devcycle-server/dataCollection/wsgi.py
-
-        <Directory /usr/local/devcycle/dataCollection>
-                <Files wsgi.py>
-                Order deny,allow
-                Allow from all
-                </Files>
-        </Directory>
-</VirtualHost>
-```
-
-* Change the application settings:
-
-```
-nano /usr/local/devcycle/dataCollection/settings.py
-```
-
-Set DEBUG to False
-Under DATABASES, modify USER and PASSWORD fields to reflect user created in SETUP (above).
-HOST should be localhost.
-STATIC_ROOT to point to '/var/www/static' unless you modified where to collect these in 
-step 6.
-SECRET_KEY is a string of at least 32 random characters
-KEY to a random string of hex characters a multiple of 16 long
-SECRET to a random string of numeric characters a multiple of 16
-STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-  '‘/usr/local/devcycle-server/tour_config/static/’
-  )
-  
-Restart the apache server to put all changes into effect. 
-
-```
-/etc/init.d/apache2 reload
-```
-
-###Migrate the Database Schema using South
-[South](http://south.aeracode.org/) is a schema and data migration tool for Django. It is used for easily
-migrating the database schema from database to database if needed. It is also used in the case of making updates
-to models then wanting those changes reflected in the database schema. South is already installed if you ran the `bash setup.sh` command. Recommend looking at the docs for more information [docs](http://south.readthedocs.org/en/latest/index.html)
-
-At this point the database schema for the Server does not exist yet. We will use South to add it. South will look at the current models to set-up the schema that the Server requires. 
-
-*Note all commands below need to be ran within the root directory of the Django Project*
-
-1. Need to load the South table into the database, this is where all the migration instructions are kept. *--all* make sures South is tracking all tables already set. 
-
-`./manage.py syncdb --all`
-
-2. The models already exist and are initialized by South already, we need to track it. They are stored in the migrations folder of each model.
-
-* `./manage.py migrate rider 0001 --fake` 
-
-* `./manage.py migrate location_update 0001 --fake` 
-
-* `./manage.py migrate tour_config 0001 --fake` 
-
-This should add the current models to the database. 
-
-After making changes to models and wanting to reflect changes in db. 
-
-Check if changes were made to the model:
-
-`./manage.py schemamigration <model_name> --auto`
-
-2. Execute the changes:
-
-`./manage.py migrate <model_name>`
-
-When adding models
-
-`./manage.py schemamigration <model_name> --initial`
-
-
-
-
-
-
-
+ - _**Note:** this may prompt you to create a django auth user. Follow that process as well if it does._
 
 Restart server again.
 
 ```
-/etc/init.d/apache2 reload
+sudo service apache2 reload
 ```
 
 * Import all static files.
 
 ```
-python manage.py collectstatic
+sudo python manage.py collectstatic
 ```
 
 Restart server again:
 
 ```
-/etc/init.d/apache2 reload
+sudo service apache2 reload
 ```
 
-
-##Configure the Analysis Dashboard
-1. Edit the settings file in '/usr/local/devcycle/dataCollections/settings.py'
-
-* TIME_ZONE to reflect the timezone of the server in “tz database” format (e.g. ‘America/New_York’)
-* DEFAULT_MAP_LAT and DEFAULT_MAP_LON to the latitude and longitude, respectively, that maps in the dashboard should default to.
-* MAP_TILE_SERVER to the hostname of the server to retrieve map tiles from - currently configured to use MapQuest's free OSM tile server hosting.
 
 ##Devcycle Load Test Framework
 
@@ -214,14 +190,14 @@ jsons/ - contains all json files. The json files constitute the data you are sen
 ###  Usage
 
 If you want to write your own configurations then include them in the configs/ directory. If you want
-to write your own json then include them in the jsons/ directory. 
+to write your own json then include them in the jsons/ directory.
 
 It is important to note that you do not need specify the full relative paths
 of the config files when running the framework on the command line. The framework
 will search for all config files in the configs/ directory. When specifying the json
 files in the config files, you do not need to specify the full relative paths
 for the json files, just the name of the file. The framework looks automatically
-in the jsons/ directory for all json files. 
+in the jsons/ directory for all json files.
 
 Sample command
 
@@ -231,6 +207,49 @@ or
 
 `./Main.rb config_sample.txt`
 
+### Configs and JSON files
+
+Configs are formatted as follows:
+```
+URL (the connection URL)
+#Requests (max 200)
+JSON (the name of the JSON object to pull data from)
+- (terminates the test definition)
+```
+
+Example config:
+```
+http://centri-pedal2.se.rit.edu/join_group/groupCode/riderId/
+200
+join_group.json
+-
+```
+Main_GET.rb allows for groupCode and riderId to be specified as hooks in the URL for data to be plugged into dynamically.
+
+A corresponding JSON object would then look like this:
+```
+{
+	"groupCode" : "BIG1",
+	"riderId" : 15
+}
+```
+
+You can also use random test data by specifying the groupCode or riderId to be "random". Here is an example JSON for a randomized test:
+```
+{
+	"groupCode" : "random",
+	"groupCodeBase" : "BIG",
+	"groupCodeMin" : 1,
+	"groupCodeMax" : 50,
+	"riderId" : "random",
+	"riderIdMin" : 2,
+	"riderIdMax" : 100
+}
+```
+
+Random group codes are generated by combing a groupCodeBase ("BIG" in the above example) with a random number. The above JSON would result in a random selection between BIG1, BIG2, BIG3, ..., BIG50.
+
+Random rider IDs are selected from the specified range of values.
 
 ### Recording and Analyzing
 
@@ -238,8 +257,8 @@ To look at the Server performance in real time the linux command `top` is used. 
 the load tests it is important to record the performance of the server. When you run the
 load test make sure you run top on the server simultaneously in order to record the
 performance of the server at the time of the tests. By using this command and
-pipping the results this is achievable to analyze the data. Then after recording, 
-grep the text in order to get the parameters you want then simply graph the numbers. 
+piping the results this is achievable to analyze the data. Then after recording,
+grep the text in order to get the parameters you want then simply graph the numbers.
 
 The command below pipes the top command every 1 second into a text file called example.
 `top -b -d 1 > example.txt`
@@ -250,5 +269,49 @@ The command below then greps for only the CPU performance numbers
 The command below then greps for only the Mem performance numbers
 `cat example.txt | grep Cpu | cut -c 35-39 | nl -i 1`
 
+### Errors
+
+You may encounter an error about a missing libcurl.dll when you attempt to run the load testing framework. Follow these steps to resolve it:
+
+Go to this URL: http://rubyinstaller.org/downloads/
+
+Download DevKit-tdm-32-4.5.2-20111229-1559-sfx.exe
+
+Follow these instructions to set the devkit up on your machine: https://github.com/oneclick/rubyinstaller/wiki/Development-Kit
+
+Go to this URL: http://www.paehl.com/open_source/?CURL_7.39.0&PHPSESSID=b155d4a69c7aa26b1fd67e7201d4fb3e
+
+Select "Download libcurl.dll (all versions) only"
+
+Extract the contents of the archive, copy libcurl.dll from the SSL folder, and paste it into your Ruby /bin folder (probably C:\Ruby193\bin if you're on Windows)
 
 
+# Tips
+## Postgres Database Commands
+#####Connecting to the database after setup
+1. Type `sudo -iu postgres`
+2. Type `psql DCS`
+
+#####Some helpful commands include:
+1. `\dt` to list all tables
+2. `\q` to quit
+3. `psql DCS < /path/to/script/script.sql` for running scripts without having to connect
+
+## Creating Migrations
+When you make changes to the model, you need to create migrations to reflect the
+changes in the database. You can do so by running this command:
+
+`sudo python manage.py schemamigration MODEL_NAME NAME_OF_MIGRATION --auto`
+
+* change "MODEL_NAME" to the model you changed ex: "rider"
+* change "NAME_OF_MIGRATION" to what you want to call it.
+
+This commands will then apply the newly created migrations to the database:
+
+`sudo python manage.py makemigrations`
+
+Now you need to reload the server
+
+```
+sudo service apache2 reload
+```
